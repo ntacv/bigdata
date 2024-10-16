@@ -28,8 +28,6 @@ wait(){
 
 # INTRODUCTION
 
-wait
-
 echo "Hello to the server generator"
 echo "You are in:"
 pwd
@@ -48,26 +46,37 @@ done
 # INSTALLATIONS
 
 installations(){
-sudo apt update -y
-sudo apt -y upgrade
+  sudo apt update -y
+  sudo apt -y upgrade
 
-sudo apt install openssh-server -y
-sudo apt install net-tools -y
+  sudo apt install openssh-server -y
+  sudo apt install net-tools -y
 
-sudo apt install python3 -y
-sudo apt install python3-pip -y
-sudo apt install python3-virtualenv -y
+  sudo apt install python3 -y
+  sudo apt install python3-pip -y
+  sudo apt install python3-virtualenv -y
 }
 #installations
 
 # GENERATING THE VM SERVERS
 
-# ANSIBLE CONFIG
-pwd
-read -p "Press enter to continue"
-virtualenv -p python3.12 venv-ansible
-source venv-ansible/bin/activate
-pwd
-#pip install ansible
-pwd
+# SSH CONFIGURATION
 
+# CAPTURE THE IP ADDRESSES
+#ip -4 addr | grep -oP '(?<=inet\s)\d+(\.\d+){3}'
+#hostname -I
+
+# GENERATE ANSIBLE INVENTORY
+#cat >> ~/ansible/inventory << EOF $ips EOF
+
+# ANSIBLE CONFIG
+ansible_config(){
+  read -p "Press enter to continue"
+  virtualenv -p python3.12 venv-ansible
+  source venv-ansible/bin/activate
+}
+#ansible_config
+
+
+cat >> ~/.bashrc << EOF 
+EOF
