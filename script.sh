@@ -14,7 +14,7 @@ run_main(){
 }
 
 wait(){
-  echo "Press any key to terminate the application..."
+  echo "Press any key to continue..."
   # Loop until a key is pressed
   while true; do
     read -p "waiting..." key  # Read a single character silently
@@ -66,17 +66,30 @@ installations(){
 #ip -4 addr | grep -oP '(?<=inet\s)\d+(\.\d+){3}'
 #hostname -I
 
-# GENERATE ANSIBLE INVENTORY
-#cat >> ~/ansible/inventory << EOF $ips EOF
 
 # ANSIBLE CONFIG
 ansible_config(){
-  read -p "Press enter to continue"
   virtualenv -p python3.12 venv-ansible
   source venv-ansible/bin/activate
 }
 #ansible_config
 
+# GENERATE ANSIBLE INVENTORY
+#cat >> ~/ansible/inventory << EOF $ips EOF
 
-cat >> ~/.bashrc << EOF 
-EOF
+# ANSIBLE PLAYBOOK
+ansible_playbook(){
+  ansible-playbook playbook/install_python.yml
+  
+}
+#ansible_playbook
+
+ssh_config(){
+# if Strict
+echo "StrictHostKeyChecking no" | sudo tee -a /etc/ssh/ssh_config 
+# https://stackoverflow.com/questions/43235179/how-to-execute-ssh-keygen-without-prompt
+}
+#ssh_config
+
+# if rsa
+#cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
