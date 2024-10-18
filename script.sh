@@ -7,6 +7,10 @@ jar_name=$1
 file_name=$2
 slave_count=$3
 
+jar_name=java/sparck_project/wc.jar
+file_name=java/filesample.txt
+slave_count=3
+
 # FUNCTIONS
 
 run_main(){
@@ -79,7 +83,8 @@ ansible_config(){
 
 # ANSIBLE PLAYBOOK
 ansible_playbook(){
-  ansible-playbook playbook/install_python.yml
+  sudo ls
+  ansible-playbook playbook.yml --extra-vars="jar_name=$jar_name , file_name=$file_name , slave_count=$slave_count "
   
 }
 #ansible_playbook

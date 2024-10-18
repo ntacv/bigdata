@@ -1,0 +1,142 @@
+- name: Wait for nodes to become reachable
+  wait_for_connection:
+    timeout: 120
+
+# CONFIGURATION
+
+- name: create install dir
+  file: path="{{ install_dir }}" state=directory
+
+- name: create temporary install dir
+  file: path="{{ install_temp_dir }}" state=directory
+
+- name: create spark history server dir
+  file: path="{{ spark_history_dir }}" state=directory
+
+- name: upgrade all packages
+  shell: apt-get update -y
+
+- name: install commonly used os dependencies
+  shell: apt-get install -y software-properties-common openssh-server openssh-client python3.8
+
+- name: create user ssh folder
+  file:
+    path: "~/.ssh/"
+    state: directory
+    mode: 0700
+
+- name: ssh config file should be available
+  template: src="config.j2" dest="~/.ssh/config" mode="600"
+
+- name: Copy ssh public key
+  copy:
+    src: "{{ ssh_public_key_path }}"
+    dest: "/home/{{ spark_user }}/.ssh/id_rsa.pub"
+    owner: "{{ spark_user }}"
+    mode: 0600
+
+- name: add ssh public key to authorized users
+  shell: "cat /home/{{ spark_user }}/.ssh/id_rsa.pub >> /home/{{ spark_user }}/.ssh/authorized_keys"
+
+# PRE INSTALLATION
+
+- name: set spark fact
+  set_fact: spark_installed=True
+
+- name: set spark installation path fact
+  set_fact: spark_installation_dir=spark-{{ spark.version }}-bin-hadoop{{ spark.hadoop_version }}
+
+- name: set spark archive fact
+  set_fact: spark_archive=spark-{{ spark.version }}-bin-hadoop{{ spark.hadoop_version }}.tgz
+
+- name: set spark download location fact
+  set_fact: spark_download={{ spark.download_location }}/spark-{{ spark.version }}/{{ spark_archive }}
+
+- name: define number of spark workers
+  set_fact: number_of_workers="{{ groups['nodes'] | length | int }}"
+
+- name: create install directory
+  file:
+    path: "{{ install_dir }}/{{ spark_installation_dir }}"
+    state: directory
+
+# INSTALLATION
+
+- debug:
+    msg: "Downloading Spark from: {{ spark_download }}"
+
+- name: Install Java
+  get_url:
+    url: https://sd-160040.dedibox.fr/hagimont/software/jdk-8u202-linux-x64.tar.gz
+    dest: /tmp/jdk-8u202-linux-x64.tar.gz
+
+- name: Extract Java
+  unarchive:
+    src: /tmp/jdk-8u202-linux-x64.tar.gz
+    dest: /opt/
+    remote_src: yes
+
+- name: Download and extract Hadoop
+  get_url:
+    url: https://sd-160040.dedibox.fr/hagimont/software/hadoop-2.7.1.tar.gz
+    dest: /tmp/hadoop-2.7.1.tar.gz
+
+- name: Extract Hadoop
+  unarchive:
+    src: /tmp/hadoop-2.7.1.tar.gz
+    dest: /opt/
+    remote_src: yes
+
+- name: Download and extract Spark
+  get_url:
+    url: https://sd-160040.dedibox.fr/hagimont/software/spark-2.4.3-bin-hadoop2.7.tgz
+    dest: /tmp/spark-2.4.3-bin-hadoop2.7.tgz
+
+- name: Extract Spark
+  unarchive:
+    src: /tmp/spark-2.4.3-bin-hadoop2.7.tgz
+    dest: /opt/
+    remote_src: yes
+
+# CONFIGURATION
+
+- name: start spark
+  shell: "sbin/start-all.sh"
+  args:
+    chdir: "{{ install_dir}}/{{ spark_installation_dir }}"
+  ignore_errors: yes
+  when: inventory_hostname in groups['master']
+
+- name: start history_server
+  shell: "sbin/start-history-server.sh"
+  args:
+    chdir: "{{ install_dir}}/{{ spark_installation_dir }}"
+  ignore_errors: yes
+  when: inventory_hostname in groups['master']
+
+- name: set spark env
+  shell: "{{ item }}"
+  with_items:
+    - "cp {{ spark_install_dir }}/conf/spark-env.sh.template {{ spark_install_dir }}/conf/spark-env.sh"
+    - "echo SPARK_MASTER_HOST={{ master_ip_address }} >> {{ spark_install_dir }}/conf/spark-env.sh"
+
+- name: add spark profile to startup
+  template:
+    src: spark-profile.sh.j2
+    dest: /etc/profile.d/spark-profile.sh
+    mode: 0644
+
+# RUNNING
+
+- name: Copy JAR file to master
+  copy:
+    src: "{{ jar_name }}" #/path/to/your/application.jar
+    dest: /opt/spark-2.4.3-bin-hadoop2.7/{{ jar_name }}
+
+- name: Copy data file to master
+  copy:
+    src: "{{ file_name }}" #/path/to/your/datafile.txt
+    dest: /opt/spark-2.4.3-bin-hadoop2.7/{{ file_name }}
+
+- name: Run Spark job
+  command: /opt/spark-2.4.3-bin-hadoop2.7/bin/spark-submit --class WordCount /opt/spark-2.4.3-bin-hadoop2.7/{{ jar_name }} /opt/spark-2.4.3-bin-hadoop2.7/{{ file_name }}

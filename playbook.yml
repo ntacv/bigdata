@@ -1,0 +1,26 @@
+- name: My first playbook to install python
+  hosts: localhost #slave # here give your instance name
+  user: ubuntu
+  become: yes
+
+  environment:
+    JAVA_HOME: /usr/java/jdk1.8.0_202
+    SPARK_LOCAL_IP: 192.168.1.51
+    HADOOP_COMMON_LIB_NATIVE_DIR: $HADOOP_HOME/lib/native
+    #HADOOP_OPTS: "-Djava.library.path=\$HADOOP_HOME/lib/native\""
+
+  #roles:
+  #- role: deploy_spark
+
+  tasks:
+    #- name: echo variable
+    #  ansible.builtin.debug:
+    #   msg: debug for {{ slave_count }} VM running {{ jar_name }} with {{ file_name }}
+
+    - name: Install Python3
+      package:
+        name: python3
+        state: present
+
+    - name: Run Spark job
+      command: installs/spark-2.4.3-bin-hadoop2.7/bin/spark-submit --class WordCount {{ jar_name }} {{ file_name }}
